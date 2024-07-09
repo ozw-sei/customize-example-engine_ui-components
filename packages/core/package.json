@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "1.6.3",
+    "@thatopen/fragments": "~2.0.0",
     "iconify-icon": "2.0.0",
     "lit": "3.1.2"
   }

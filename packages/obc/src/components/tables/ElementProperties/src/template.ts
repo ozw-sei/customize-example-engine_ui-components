@@ -252,6 +252,8 @@ const computeTableData = async (
 
   const expressIDs = [];
 
+  console.log("fragmentIdMap in templates", fragmentIdMap);
+
   for (const fragID in fragmentIdMap) {
     const fragment = fragments.list.get(fragID);
     if (!(fragment && fragment.group)) continue;
@@ -274,6 +276,7 @@ const computeTableData = async (
     if (!modelRelations) continue;
     for (const expressID of expressIDs) {
       const elementAttrs = await model.getProperties(expressID);
+      console.log(elementAttrs);
       if (!elementAttrs) continue;
 
       const elementRow: BUI.TableGroupData = {
