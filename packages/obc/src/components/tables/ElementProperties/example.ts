@@ -433,7 +433,8 @@ grids.create(world);
 const ifcLoader = components.get(OBC.IfcLoader);
 await ifcLoader.setup();
 const file = await fetch(
-  "https://thatopen.github.io/engine_ui-components/resources/small.ifc",
+  "http://localhost:8000/sample_mep.ifc",
+  // "https://thatopen.github.io/engine_ui-components/resources/small.ifc",
 );
 const buffer = await file.arrayBuffer();
 const typedArray = new Uint8Array(buffer);
@@ -468,6 +469,70 @@ const [propertiesTable, updatePropertiesTable] = CUI.tables.elementProperties({
 propertiesTable.preserveStructureOnFilter = true;
 propertiesTable.indentationInText = false;
 
+const baseStyle: Record<string, string> = {
+  padding: "0.25rem",
+  borderRadius: "0.25rem",
+};
+const tableDefinition: BUI.TableDataTransform = {
+  Entity: (entity) => {
+    let style = {};
+    if (entity === OBC.IfcCategoryMap[WEBIFC.IFCPROPERTYSET]) {
+      style = {
+        ...baseStyle,
+        backgroundColor: "purple",
+        color: "white",
+      };
+    }
+    if (String(entity).includes("IFCWALL")) {
+      style = {
+        ...baseStyle,
+        backgroundColor: "green",
+        color: "white",
+      };
+    }
+    return BUI.html`<bim-label style=${BUI.styleMap(style)}>${entity}</bim-label>`;
+  },
+  PredefinedType: (type) => {
+    const colors = ["#1c8d83", "#3c1c8d", "#386c19", "#837c24"];
+    const randomIndex = Math.floor(Math.random() * colors.length);
+    const backgroundColor = colors[randomIndex];
+    const style = { ...baseStyle, backgroundColor, color: "white" };
+    return BUI.html`<bim-label style=${BUI.styleMap(style)}>${type}</bim-label>`;
+  },
+  NominalValue: (value) => {
+    let style = {};
+    if (typeof value === "boolean" && value === false) {
+      style = { ...baseStyle, backgroundColor: "#b13535", color: "white" };
+    }
+    if (typeof value === "boolean" && value === true) {
+      style = { ...baseStyle, backgroundColor: "#18882c", color: "white" };
+    }
+    return BUI.html`<bim-label style=${BUI.styleMap(style)}>${value}</bim-label>`;
+  },
+};
+
+const [attributesTable, updateAttributesTable] = CUI.tables.entityAttributes({
+  components,
+  fragmentIdMap: {},
+  tableDefinition,
+  attributesToInclude: () => {
+    const attributes: any[] = [
+      "Name",
+      "ContainedInStructure",
+      "HasProperties",
+      "HasPropertySets",
+      (name: string) => name.includes("Value"),
+      (name: string) => name.startsWith("Material"),
+      (name: string) => name.startsWith("Relating"),
+      (name: string) => {
+        const ignore = ["IsGroupedBy", "IsDecomposedBy"];
+        return name.startsWith("Is") && !ignore.includes(name);
+      },
+    ];
+    return attributes;
+  },
+});
+
 /* MD
   :::tip
 
@@ -487,11 +552,13 @@ highlighter.events.select.onHighlight.add((fragmentIdMap) => {
     console.log(rows);
   });
   updatePropertiesTable({ fragmentIdMap });
+  updateAttributesTable({ fragmentIdMap });
 });
 
-highlighter.events.select.onClear.add(() =>
-  updatePropertiesTable({ fragmentIdMap: {} }),
-);
+highlighter.events.select.onClear.add(() => {
+  updatePropertiesTable({ fragmentIdMap: {} });
+  updateAttributesTable({ fragmentIdMap: {} });
+});
 
 /* MD
   ### Creating a panel to append the table
@@ -524,6 +591,11 @@ const propertiesPanel = BUI.Component.create(() => {
         </div> 
         <bim-text-input @input=${onTextInput} placeholder="Search Property" debounce="250"></bim-text-input>
         ${propertiesTable}
+        <br/>
+  
+      </bim-panel-section>
+      <bim-panel-section label="Attribute Data">
+          ${attributesTable}
       </bim-panel-section>
     </bim-panel>
   `;
@@ -538,7 +610,7 @@ app.layouts = {
   main: {
     template: `
     "propertiesPanel viewport"
-    /25rem 1fr
+    /25rem 2fr
     `,
     elements: { propertiesPanel, viewport },
   },
